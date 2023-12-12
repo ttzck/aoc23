@@ -18,6 +18,15 @@ def pipe_at(x, y):
     return input[y][x]
 
 
+def out_of_bounds(x, y):
+    return x < 0 or x >= len(input[0]) or y < 0 or y >= len(input)
+
+
+def write_at(x, y, c):
+    if x < 0 or x >= len(input[0]) or y < 0 or y >= len(input):
+        return
+    input[y][x] = c
+
 def part1(sx, sy):
     visited = []
     q = [(sx, sy, 0)]
@@ -36,27 +45,72 @@ def part1(sx, sy):
                 q.append((x + dx, y + dy, steps + 1))
     return max(s)
 
-def mark_loop(sx, sy):
-    visited = []
-    q = [(sx, sy, 0)]
-    while q:
-        x, y, steps = q.pop(0)
-        if (x, y) in visited:
-            continue
 
-        visited.append((x,y))
+def get_path(x, y):
+    path = []
+    last_step = None
+    while True:
         p = pipe_at(x, y)
         for d in allowed_directions[p]:
+            if last_step != None and d == opposite(last_step):
+                continue
             dx, dy = translations[d]
             if pipe_at(x + dx, y + dy) in allowed_pipes[opposite(d)]:
-                q.append((x + dx, y + dy, steps + 1))
-    return visited
+                x, y = x + dx, y + dy
+                path.append(d)
+                last_step = d
+                if pipe_at(x, y) == 'S': return path
+                else: break
+
+
+def write_path(x, y, path):
+    while path:
+        d = path.pop(0)
+        write_at(x, y, d)
+        dx, dy = translations[d]
+        x, y = x + dx, y + dy
+
+
+def flood_path(x, y, path):
+    while path:
+        d = path.pop(0)
+        match d:
+            case 'n':
+                flood_fill(x + 1, y, 'I')
+                flood_fill(x + 1, y - 1, 'I')
+                flood_fill(x - 1, y, 'O')
+            case 'e':
+                flood_fill(x, y + 1, 'I')
+                flood_fill(x + 1, y + 1, 'I')
+                flood_fill(x, y - 1, 'O')
+            case 's':
+                flood_fill(x - 1, y, 'I')
+                flood_fill(x - 1, y + 1, 'I')
+                flood_fill(x + 1, y, 'O')
+            case 'w':
+                flood_fill(x, y - 1, 'I')
+                flood_fill(x - 1, y - 1, 'I')
+                flood_fill(x, y + 1, 'O')
+        dx, dy = translations[d]
+        x, y = x + dx, y + dy
+
+
+def flood_fill(x, y, c):
+    q = [(x,y)]
+    while q:
+        x, y = q.pop()
+        if out_of_bounds(x,y): continue
+        if pipe_at(x,y) not in directions + [c]:
+            write_at(x, y, c)
+            for d in directions:
+                dx, dy = translations[d]
+                q.append((x + dx, y + dy))
 
 
 input = [list(l[:-1]) for l in open("input.txt", "r").readlines()]
 
 directions = ['n', 'e', 's', 'w']
-pipes = ['|', '-', 'L', 'J', '7', 'F']
+pipes = ['S', '|', '-', 'L', 'J', '7', 'F']
 
 translations = {
     'n' : (0, -1),
@@ -83,12 +137,17 @@ for i, l in enumerate(input):
 
 
 sum = 0
-loop = mark_loop(x, y)
-for y in range(0, len(input)):  
-    for x in range(0, len(input[y])):  
-        if (x,y) not in loop:
-            input[y][x] = '.'
+path = get_path(x, y)
+path2 = copy.deepcopy(path)
+write_path(x, y, path)
+flood_path(x,y,path2)
+
+sum_i = 0
+sum_o = 0
 
 for l in input:
+    sum_i += l.count('I')
+    sum_o += l.count('O')
     print(''.join(l))
 
+print(sum_i, sum_o)
