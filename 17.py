@@ -7,38 +7,38 @@ def out_of_bounds(x, y):
 
 
 def opposite(dir):
-    if dir == None: return None
+    if dir == None: return (0,0)
     x, y = dir 
     return (-x, - y)
 
-MAX_STEPS = 3
+MIN_STEPS = 4
+MAX_STEPS = 10
 
 def dijkstra():
-    dist = [[[math.inf for _ in range(MAX_STEPS + 1)] for _ in l] for l in input]
-    prev = [[[None for _ in range(MAX_STEPS + 1)] for _ in l] for l in input]
-    dir = [[[None for _ in range(MAX_STEPS + 1)] for _ in l] for l in input]
+    dist = {(x, y, i, dir) : math.inf for x in range(width) for y in range(height) for i in range(MAX_STEPS + 1) for dir in directions}
+    prev = {(x, y, i, dir) : None for x in range(width) for y in range(height) for i in range(MAX_STEPS + 1) for dir in directions}
 
     q = queue.PriorityQueue()
-    dist[0][0][0] = 0
-    q.put((0, (0, 0, 0)))
+    dist[(0, 0, 0, None)] = 0
+    q.put((0, (0, 0, 0, None)))
 
     while not q.empty():
-        (p, (x, y, i)) = q.get()
-        if dist[y][x][i] < p: continue
+        (p, (x, y, i, dir)) = q.get()
+        if dist[(x, y, i, dir)] < p: continue
         for (dx, dy) in directions:
             
-            if (dx, dy) == opposite(dir[y][x][i]): continue
-            if (dx, dy) == dir[y][x][i] and i > MAX_STEPS: continue
+            if (dx, dy) == opposite(dir): continue
+            if ((dx, dy) != dir and i < MIN_STEPS) and dir != None: continue
+            if (dx, dy) == dir and i >= MAX_STEPS: continue
             if out_of_bounds(x + dx, y + dy): continue
 
-            j = i + 1 if (dx, dy) == dir[y][x][i] else 1
+            j = i + 1 if (dx, dy) == dir else 1
 
-            alt = dist[y][x][i] + input[y + dy][x + dx]
-            if alt < dist[y + dy][x + dx][j]:
-                dist[y + dy][x + dx][j] = alt
-                prev[y + dy][x + dx][j] = (x, y, i)
-                dir[y + dy][x + dx][j] = (dx, dy)
-                q.put((alt, (x + dx, y + dy, j)))
+            alt = dist[(x, y, i, dir)] + input[y + dy][x + dx]
+            if alt < dist[(x + dx, y + dy, j, (dx, dy))]:
+                dist[(x + dx, y + dy, j, (dx, dy))] = alt
+                prev[(x + dx, y + dy, j, (dx, dy))] = (x, y, i, dir)
+                q.put((alt, (x + dx, y + dy, j, (dx, dy))))
     
     return dist, prev, dir
 
@@ -47,4 +47,4 @@ input = [[int(d) for d in re.findall(r"\d", l)] for l in open("input.txt", "r").
 width, height = len(input[0]), len(input)
 directions = [(1,0), (0,1), (-1,0), (0,-1)]
 dist, prev, dir = dijkstra()
-print(dist[-1][-1])
+print(min([dist[width-1, height-1, i, dir] for i in range(MAX_STEPS+1) for dir in directions]))
